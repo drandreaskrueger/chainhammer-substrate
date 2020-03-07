@@ -9,11 +9,22 @@
 """
 
 import time #, sys, inspect
+from subprocess import run, PIPE
 from pprint import pprint
 import substrateinterface
+from substrateinterface.utils.ss58 import ss58_encode
 
 URL = "ws://127.0.0.1:9900/"  # "ws://127.0.0.1:9944/"
-URL = "http://127.0.0.1:9800" # "http://127.0.0.1:9933"
+# URL = "http://127.0.0.1:9800" # "http://127.0.0.1:9933"
+
+ALICE_ADDRESS=     '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
+BOB_ADDRESS=       ''
+
+PS_EXAMPLE_ADDRESS ='EaG2CRhJWPb7qmdcJvy3LiWdh26Jreu9Dx6R1rXxPmYXoDk'; #print (len(PS_EXAMPLE_ADDRESS)); exit()
+X_ADDRESS         ='5Gdc7hM6WqVjd23YaJR1bUWJheCo4ymrcKAFc35FpfbeH68f'; #print (len(X_ADDRESS)); exit()
+X_PHRASE = 'observe analyst fabric sentence burden injury inmate wheat flash labor save antenna'
+X_SECRET = '0x7c15195c7e2d6026175f2d6d53a9cfab948a275a09ccfea13bb658d53f1ce9fb'
+X_PUBKEY = '0xca08b4e0f53054628a43912ffbb6d00a0362921ba9781932297edc037d197a5d'
 
 def title (title):
     print ()
@@ -75,7 +86,6 @@ def loop_report_new_chain_head(substrate):
         old_chh = chh
 
 
-
 def explore_get_metadata_call_functions(substrate):
     
     chh = substrate.get_chain_head()
@@ -133,13 +143,112 @@ def has_call_function(substrate, module_prefix="TemplateModule", call_name="do_s
         print (exists)
     return exists
     
+    
+def show_extrinsics_of_block(substrate, bh = None): # Set block_hash to None for chaintip
+    """
+    variation of
+    https://github.com/polkascan/py-substrate-interface/blob/master/README.md#get-extrinsics-for-a-certain-block
+    """
+
+    # Retrieve extrinsics in block
+    result = substrate.get_runtime_block(block_hash=bh)
+
+    for extrinsic in result['block']['extrinsics']:
+    
+        if 'account_id' in extrinsic:
+            signed_by_address = ss58_encode(address=extrinsic['account_id'], address_type=2)
+        else:
+            signed_by_address = None
+    
+        print('\n{}.{} Signer={}'.format(
+            extrinsic['call_module'],
+            extrinsic['call_function'],
+            signed_by_address
+        ), end=". ")
+    
+        # Loop through params
+        
+        numParams = len(extrinsic['params'])
+        if numParams:
+            print ("Param/s: ", end="")
+        for i, param in enumerate(extrinsic['params']):
+    
+            if param['type'] == 'Address':
+                param['value'] = ss58_encode(address=param['value'], address_type=2)
+    
+            if param['type'] == 'Compact<Balance>':
+                param['value'] = '{} DOT'.format(param['value'] / 10**12)
+    
+            print("{}={}".format(param['name'], param['value']), end="")
+            if i+1 < numParams:
+                print (", ")
+    
+        print()
+
+
+def get_balance(substrate, address, block_hash=None, ifprint=False):
+    balance = substrate.get_runtime_state(module='Balances',
+                                      storage_function='FreeBalance',
+                                      params=[address],
+                                      block_hash=block_hash
+                                      ).get('result') 
+    dot = float(balance) / 10**12 if balance else 0
+    
+    if ifprint:
+        print("Current balance: {} DOT".format(dot))
+    return dot
+    
+
+class SubkeyError(Exception): pass 
+
+def os_command_with_pipe(command=['grep', 'f'], text='one\ntwo\nthree\nfour\nfive\nsix\n'):
+    """
+    https://stackoverflow.com/a/165662
+    """
+    p = run(command, stdout=PIPE, input=text, encoding='ascii')
+    if p.returncode != 0:
+        raise SubkeyError(p.returncode)
+    return p.stdout
+
+
+def sign(payload, signer):
+    signed = os_command_with_pipe(["subkey", "sign-transaction", signer], payload)
+    return signed
+
+
+def balance_transfer(dest, value, signer='//Alice'):
+    payload = substrate.compose_call(call_module='Balances',
+                                     call_function='transfer',
+                                     call_params={'dest': dest,
+                                                  'value': value})
+    print ("payload", payload)
+    signed = sign(payload, signer)
+    print (signed)
+    # result = substrate.rpc_request(method="author_submitAndWatchExtrinsic", params=[signed])
+    
+    result = substrate.rpc_request(method="author_submitExtrinsic", params=[signed])
+    print (result)
+
 
 if __name__ == '__main__':
-    substrate = substrateinterface.SubstrateInterface(url=URL)
+    substrate = substrateinterface.SubstrateInterface(url=URL) # , address_type=42)
+    
+       
     explore_all_members(substrate)
+    
     # loop_report_new_chain_head(substrate)
     explore_get_metadata_call_functions(substrate)
     explore_get_metadata_storage_functions(substrate)
+    yes = has_call_function(substrate, ifprint=True)
     
-    yes = has_call_function(substrate, ifprint=True); 
+    title("extrinsics of a block")
+    show_extrinsics_of_block(substrate)
+    
+    title("balances")
+    dot = get_balance(substrate, address=ALICE_ADDRESS, ifprint=True)
+    dot = get_balance(substrate, address=X_ADDRESS, ifprint=True)
 
+    # print (os_command_with_pipe())
+    # balance_transfer(dest=X_PUBKEY, value=1000000000000)
+
+    
