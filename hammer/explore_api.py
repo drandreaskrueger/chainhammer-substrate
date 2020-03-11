@@ -18,7 +18,16 @@ URL = "ws://127.0.0.1:9900/"  # "ws://127.0.0.1:9944/"
 # URL = "http://127.0.0.1:9800" # "http://127.0.0.1:9933"
 
 ALICE_ADDRESS=     '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
-BOB_ADDRESS=       ''
+BOB_ADDRESS=       '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty'
+
+"""
+subkey inspect //Bob
+Secret Key URI `//Bob` is account:
+  Secret seed:      0x398f0c28f98885e046333d4a41c19cee4c37368a9832c6502f6cfd182e2aef89
+  Public key (hex): 0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48
+  Account ID:       0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48
+  SS58 Address:     5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
+"""
 
 PS_EXAMPLE_ADDRESS ='EaG2CRhJWPb7qmdcJvy3LiWdh26Jreu9Dx6R1rXxPmYXoDk'; #print (len(PS_EXAMPLE_ADDRESS)); exit()
 X_ADDRESS         ='5Gdc7hM6WqVjd23YaJR1bUWJheCo4ymrcKAFc35FpfbeH68f'; #print (len(X_ADDRESS)); exit()
@@ -199,6 +208,20 @@ def get_balance(substrate, address, block_hash=None, ifprint=False):
     return dot
     
 
+def rpc_methods(substrate):
+    """
+    read from node:   rpc_methods
+    """
+    title("rpc_methods")
+    result = substrate.rpc_request(method="rpc_methods", params=None)
+    methods = sorted(result["result"]["methods"])
+    module_function = [dict(zip(("module", "function"), name.split("_"))) for name in methods]
+    leftsidelen = max([len(parts["module"]) for parts in module_function])
+    pattern = '{module:>%ds}_{function}' % ( leftsidelen +1 )
+    print("\n".join([pattern.format(**pair) for pair in module_function]))
+
+
+
 class SubkeyError(Exception): pass 
 
 def os_command_with_pipe(command=['grep', 'f'], text='one\ntwo\nthree\nfour\nfive\nsix\n'):
@@ -209,7 +232,6 @@ def os_command_with_pipe(command=['grep', 'f'], text='one\ntwo\nthree\nfour\nfiv
     if p.returncode != 0:
         raise SubkeyError(p.returncode)
     return p.stdout
-
 
 def sign(payload, signer):
     signed = os_command_with_pipe(["subkey", "sign-transaction", signer], payload)
@@ -222,7 +244,8 @@ def balance_transfer(dest, value, signer='//Alice'):
                                      call_params={'dest': dest,
                                                   'value': value})
     print ("payload", payload)
-    signed = sign(payload, signer)
+    # signed = sign(payload, signer)
+    exit()
     print (signed)
     # result = substrate.rpc_request(method="author_submitAndWatchExtrinsic", params=[signed])
     
@@ -233,7 +256,7 @@ def balance_transfer(dest, value, signer='//Alice'):
 if __name__ == '__main__':
     substrate = substrateinterface.SubstrateInterface(url=URL) # , address_type=42)
     
-       
+    """   
     explore_all_members(substrate)
     
     # loop_report_new_chain_head(substrate)
@@ -243,12 +266,17 @@ if __name__ == '__main__':
     
     title("extrinsics of a block")
     show_extrinsics_of_block(substrate)
+    """
     
     title("balances")
     dot = get_balance(substrate, address=ALICE_ADDRESS, ifprint=True)
-    dot = get_balance(substrate, address=X_ADDRESS, ifprint=True)
+    # dot = get_balance(substrate, address=X_ADDRESS, ifprint=True)
+    dot = get_balance(substrate, address=BOB_ADDRESS, ifprint=True)
 
     # print (os_command_with_pipe())
-    # balance_transfer(dest=X_PUBKEY, value=1000000000000)
+    # balance_transfer(dest=BOB_ADDRESS, value=1000000000000)
+    
+    
+    rpc_methods(substrate)
 
     
