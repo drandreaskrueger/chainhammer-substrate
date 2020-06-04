@@ -140,17 +140,23 @@ def balance_transfer(dest, value, signer):
     print (result)
     
     
+def benchmark_signing_workaround(N=50):
+    """
+    100 transactions took 77.0 seconds, i.e. 0.770 per transaction.
+    --> max bandwidth is 1.3 TPS
+    """
+    timed = time.time()
+    # sign_many_threaded_queue(numTx=20, num_worker_threads=10);
+    sign_many_threaded(N=N) 
+    timed = time.time() - timed
+    print ("that took %.1f seconds, i.e. %.3f per transaction" % (timed, timed/N))
+    
 
 if __name__ == '__main__':
     # print(os_command())
     # test_sign(); exit()
     
-    timed = time.time()
-    # sign_many_threaded_queue(numTx=20, num_worker_threads=10);
-    sign_many_threaded(N=50) 
-    timed = time.time() - timed
-    print ("that took %.3f seconds" % timed)
-    exit()
+    benchmark_signing_workaround(100); exit()
     
     substrate = substrateinterface.SubstrateInterface(url=URL) # , address_type=42)
     
