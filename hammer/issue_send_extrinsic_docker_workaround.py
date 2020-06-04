@@ -14,7 +14,8 @@ from queue import Queue
 from subprocess import run, PIPE
 import substrateinterface
 
-URL = "http://127.0.0.1:9800" # "http://127.0.0.1:9933"
+URL = "http://127.0.0.1:9800" 
+URL = "http://127.0.0.1:9933"
 
 ALICE_ADDRESS = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
 X_ADDRESS     = '5Gdc7hM6WqVjd23YaJR1bUWJheCo4ymrcKAFc35FpfbeH68f'
@@ -156,7 +157,7 @@ if __name__ == '__main__':
     # print(os_command())
     # test_sign(); exit()
     
-    benchmark_signing_workaround(100); exit()
+    benchmark_signing_workaround(5); exit()
     
     substrate = substrateinterface.SubstrateInterface(url=URL) # , address_type=42)
     
