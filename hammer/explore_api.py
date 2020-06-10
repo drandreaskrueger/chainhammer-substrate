@@ -14,7 +14,8 @@ from pprint import pprint
 import substrateinterface
 from substrateinterface.utils.ss58 import ss58_encode
 
-URL = "ws://127.0.0.1:9900/"  # "ws://127.0.0.1:9944/"
+URL = "ws://127.0.0.1:9900/"  
+URL = "ws://127.0.0.1:9944/"
 # URL = "http://127.0.0.1:9800" # "http://127.0.0.1:9933"
 
 ALICE_ADDRESS=     '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
@@ -64,6 +65,9 @@ def explore_all_members(substrate):
                 msg = str(e).replace(name+"() ", "") .replace("argument:", "argument: ") 
 
                 errors.append((name, "%s %s" % (err, msg), missing_args))
+            except Exception as e:
+                functions.append((name, "ERROR %s %s" % (type(e), e)))
+                
             else:
                 functions.append((name, result))
                 
@@ -81,8 +85,9 @@ def explore_block(substrate, bh):
     print ("... that block has transactions (extrinsics):", nt)
     return b, bn, nt 
 
-def loop_report_new_chain_head(substrate):
-    
+def loop_report_new_chain_head(substrate, maxloops=3):
+    title ("showing %d new blocks" % maxloops ) 
+    count=0
     old_chh = None
     while True:
         while True:
@@ -93,6 +98,9 @@ def loop_report_new_chain_head(substrate):
         print ("Chain head is now at", end=" ")
         b, bn, nt = explore_block(substrate, chh)
         old_chh = chh
+        count += 1
+        if count>=maxloops:
+            break
 
 
 def explore_get_metadata_call_functions(substrate):
@@ -196,15 +204,15 @@ def show_extrinsics_of_block(substrate, bh = None): # Set block_hash to None for
 
 
 def get_balance(substrate, address, block_hash=None, ifprint=False):
-    balance = substrate.get_runtime_state(module='Balances',
-                                      storage_function='FreeBalance',
+    result = substrate.get_runtime_state(module='System',
+                                      storage_function='Account',
                                       params=[address],
-                                      block_hash=block_hash
-                                      ).get('result') 
-    dot = float(balance) / 10**12 if balance else 0
+                                      block_hash=block_hash)['result']
+     
+    dot = float(result['data']['free']) / 10**12 if result else 0
     
     if ifprint:
-        print("Current balance: {} DOT".format(dot))
+        print("Free balance: {:12.4f} DOT on {}".format(dot, address))
     return dot
     
 
@@ -246,37 +254,36 @@ def balance_transfer(dest, value, signer='//Alice'):
     print ("payload", payload)
     # signed = sign(payload, signer)
     exit()
-    print (signed)
+    # print (signed)
     # result = substrate.rpc_request(method="author_submitAndWatchExtrinsic", params=[signed])
     
-    result = substrate.rpc_request(method="author_submitExtrinsic", params=[signed])
-    print (result)
+    # result = substrate.rpc_request(method="author_submitExtrinsic", params=[signed])
+    # print (result)
 
 
 if __name__ == '__main__':
     substrate = substrateinterface.SubstrateInterface(url=URL) # , address_type=42)
     
-    """   
+    rpc_methods(substrate)
+    
     explore_all_members(substrate)
     
-    # loop_report_new_chain_head(substrate)
+    loop_report_new_chain_head(substrate, maxloops=3)
     explore_get_metadata_call_functions(substrate)
+    
     explore_get_metadata_storage_functions(substrate)
     yes = has_call_function(substrate, ifprint=True)
     
     title("extrinsics of a block")
     show_extrinsics_of_block(substrate)
-    """
-    
+
     title("balances")
     dot = get_balance(substrate, address=ALICE_ADDRESS, ifprint=True)
-    # dot = get_balance(substrate, address=X_ADDRESS, ifprint=True)
     dot = get_balance(substrate, address=BOB_ADDRESS, ifprint=True)
+    dot = get_balance(substrate, address=X_ADDRESS, ifprint=True)
 
     # print (os_command_with_pipe())
     # balance_transfer(dest=BOB_ADDRESS, value=1000000000000)
     
-    
-    rpc_methods(substrate)
 
     
