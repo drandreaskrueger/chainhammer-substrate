@@ -10,6 +10,7 @@
 
 # import requests; print(requests.__version__) # example for __version__
 import substrateinterface
+from pprint import pprint 
 # import scalecodec
 # print (substrateinterface.__version__, scalecodec.__version__)
 substrate = substrateinterface.SubstrateInterface(url="ws://127.0.0.1:9944/")
@@ -18,7 +19,7 @@ chb=substrate.get_chain_block(ch)
 chbn=int(chb['block']['header']['number'],16)
 print("block #%s (%s)" % (chbn, ch))
 print(substrate.get_runtime_events(ch))
-print(substrate.get_runtime_events())
+pprint(substrate.get_runtime_events())
 
 
 
