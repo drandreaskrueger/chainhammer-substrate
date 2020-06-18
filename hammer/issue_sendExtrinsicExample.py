@@ -6,16 +6,23 @@
 @since:   10/June/2020
 @author:  https://github.com/drandreaskrueger
 @see:     https://github.com/drandreaskrueger/chainhammer-substrate for updates
+
+@attention: version!
+            pip uninstall scalecodec substrateinterface substrate-interface;
+            pip install --upgrade scalecodec substrate-interface
+            pip freeze | grep "scalecodec\|substrate"
+
+scalecodec==0.9.54
+substrate-interface==0.9.14
 """
 
-def errorenous():
+from substrateinterface import SubstrateInterface, Keypair, SubstrateRequestException
+from pprint import pformat
+
+def compose_sign_and_send_extrinsic(substrate):
     """
-    answered here https://github.com/polkascan/py-substrate-interface/issues/14
-    this would work but only with newer substrate version than rc2
+    see https://github.com/polkascan/py-substrate-interface/issues/14
     """
-    from substrateinterface import SubstrateInterface, Keypair, SubstrateRequestException
-    from pprint import pformat
-    substrate = SubstrateInterface( url="ws://127.0.0.1:9944" )
     keypair = Keypair.create_from_mnemonic('episode together nose spoon dose oil faculty zoo ankle evoke admit walnut')
     print ("sending from:", keypair.ss58_address)
     BOB_ADDRESS = '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty'
@@ -32,5 +39,37 @@ def errorenous():
         print("Failed to send: {} with args:".format(type(e)))
         print("{}".format(pformat(e.args[0])))
 
+
+def with_custom_type_registry():
+    custom_type_registry = {
+                            "runtime_id": 1,
+                            "types": {
+                              "ExtrinsicPayloadValue": {
+                                "type": "struct",
+                                "type_mapping": [
+                                  ["call", "CallBytes"],
+                                  ["era", "Era"],
+                                  ["nonce", "Compact<Index>"],
+                                  ["tip", "Compact<Balance>"],
+                                  ["specVersion", "u32"],
+                                  ["genesisHash", "Hash"],
+                                  ["blockHash", "Hash"]
+                                ]
+                              }
+                            },
+                            "versioning": []
+                            }
+    substrate = SubstrateInterface(url="ws://127.0.0.1:9944",
+                                   address_type=42, type_registry_preset='default', type_registry=custom_type_registry)
+    return substrate
+
 if __name__ == '__main__':
-    errorenous()
+    print ("\nError with substrate rc2 :")
+    substrate = SubstrateInterface( url="ws://127.0.0.1:9944" )
+    compose_sign_and_send_extrinsic(substrate)
+    
+    print ("\nNo error with substrate rc2 ?")
+    substrate=with_custom_type_registry()
+    compose_sign_and_send_extrinsic(substrate)
+    
+    
