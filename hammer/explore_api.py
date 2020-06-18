@@ -110,9 +110,11 @@ def explore_get_metadata_call_functions(substrate):
     title ("exploring get_metadata_call_functions( %s )" % chh)
     mdcf = substrate.get_metadata_call_functions(chh)
     # pprint (mdcf)
-    module_prefix_charlength = max([len(func["module_prefix"]) for func in mdcf])
+    module_prefix_charlength = max([len(func["module_prefix"]) for func in mdcf if func["module_prefix"]]) # drops the None type 
     for func in mdcf:
         pattern = '{module_prefix:>%ds}.{call_name}(' % ( module_prefix_charlength +1 )
+        if func["module_prefix"]==None:
+            func["module_prefix"]="" # workaround for <None>.final_hint( hint:Compact<BlockNumber> ) in substrate --dev
         text = pattern .format(**func)
         args = func["call_args"]
         if len(args):
