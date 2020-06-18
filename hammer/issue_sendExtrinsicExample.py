@@ -4,7 +4,7 @@
           found an error, reported in https://github.com/polkascan/py-substrate-interface/issues/14
           output results = see bottom of this file
 
-@version: v03 (18/June/2020)
+@version: v04 (18/June/2020)
 @since:   10/June/2020
 @author:  https://github.com/drandreaskrueger
 @see:     https://github.com/drandreaskrueger/chainhammer-substrate for updates
@@ -21,6 +21,9 @@ substrate-interface==0.9.14
 from substrateinterface import SubstrateInterface, Keypair, SubstrateRequestException
 from pprint import pformat, pprint
 
+URL =   "ws://127.0.0.1:9944"
+URL = "http://127.0.0.1:9933"
+
 def compose_sign_and_send_extrinsic(substrate):
     """
     see https://github.com/polkascan/py-substrate-interface/issues/14
@@ -35,33 +38,36 @@ def compose_sign_and_send_extrinsic(substrate):
             'value': 1 * 10**12})
     try:
         extrinsic = substrate.create_signed_extrinsic(call=call, keypair=keypair)
-        result = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True)
-        print("Extrinsic '{}' sent and included in block '{}'".format(result['extrinsic_hash'], result['block_hash']))
+        # result = substrate.submit_extrinsic(extrinsic, wait_for_inclusion=True) # works only with ws not http
+        result = substrate.submit_extrinsic(extrinsic) # works with http AND ws
+        print("Extrinsic '{}' sent and included in block '{}'".format(result['extrinsic_hash'], result.get('block_hash', None)))
+        
     except (SubstrateRequestException, ValueError) as e:
         print("Failed to send: {} with args:".format(type(e)))
         print("{}".format(pformat(e.args[0])))
 
 
 def with_custom_type_registry():
-    custom_type_registry = {
-                            "runtime_id": 1,
-                            "types": {
-                              "ExtrinsicPayloadValue": {
-                                "type": "struct",
-                                "type_mapping": [
-                                  ["call", "CallBytes"],
-                                  ["era", "Era"],
-                                  ["nonce", "Compact<Index>"],
-                                  ["tip", "Compact<Balance>"],
-                                  ["specVersion", "u32"],
-                                  ["genesisHash", "Hash"],
-                                  ["blockHash", "Hash"]
-                                ]
-                              }
-                            },
-                            "versioning": []
+    custom_type_registry = {  "runtime_id": 1,
+                              "types": {
+                                "Address": "AccountIdAddress",
+                                "ExtrinsicPayloadValue": {
+                                  "type": "struct",
+                                  "type_mapping": [
+                                    ["call", "CallBytes"],
+                                    ["era", "Era"],
+                                    ["nonce", "Compact<Index>"],
+                                    ["tip", "Compact<Balance>"],
+                                    ["specVersion", "u32"],
+                                    ["genesisHash", "Hash"],
+                                    ["blockHash", "Hash"]
+                                  ]
+                                }
+                              },
+                              "versioning": [
+                              ]
                             }
-    substrate = SubstrateInterface(url="ws://127.0.0.1:9944",
+    substrate = SubstrateInterface(url=URL,
                                    address_type=42, 
                                    type_registry_preset='default', 
                                    type_registry=custom_type_registry)
@@ -79,7 +85,7 @@ def print_getRuntimeVersion(substrate):
 
 if __name__ == '__main__':
     
-    substrate = SubstrateInterface( url="ws://127.0.0.1:9944" )
+    substrate = SubstrateInterface( url=URL )
     print_getRuntimeVersion(substrate)
     
     print ("\nDefault SubstrateInterface:")
@@ -130,18 +136,12 @@ Failed to send: <class 'substrateinterface.exceptions.SubstrateRequestException'
 SubstrateInterface with custom type registry:
 sending from: 5HmubXCdmtEvKmvqjJ7fXkxhPXcg6JTS62kMMphqxpEE6zcG
 Failed to send: <class 'substrateinterface.exceptions.SubstrateRequestException'> with args:
-{'code': 1002,
- 'data': 'RuntimeApi("Execution(ApiError(\\"Could not convert parameter `tx` '
-         'between node and runtime: No such variant in enum '
-         'MultiSignature\\"))")',
- 'message': 'Verification Error: Execution(ApiError("Could not convert '
-            'parameter `tx` between node and runtime: No such variant in enum '
-            'MultiSignature"))'}
+{'code': 1010, 'data': 'BadProof', 'message': 'Invalid Transaction'}
 
 
 ### substrate --dev
 
-get_version() = 2.0.0-rc2-45b9f0a9c-x86_64-linux-gnu
+get_version() = 2.0.0-rc3-34695a856-x86_64-linux-gnu
 chain_getRuntimeVersion():
 {'id': 1,
  'jsonrpc': '2.0',
@@ -159,7 +159,7 @@ chain_getRuntimeVersion():
                      ['0xab3c0572291feb8b', 1]],
             'authoringVersion': 10,
             'implName': 'substrate-node',
-            'implVersion': 0,
+            'implVersion': 2,
             'specName': 'node',
             'specVersion': 251,
             'transactionVersion': 1}}
@@ -172,6 +172,12 @@ Failed to send: <class 'substrateinterface.exceptions.SubstrateRequestException'
 SubstrateInterface with custom type registry:
 sending from: 5HmubXCdmtEvKmvqjJ7fXkxhPXcg6JTS62kMMphqxpEE6zcG
 Failed to send: <class 'substrateinterface.exceptions.SubstrateRequestException'> with args:
-{'code': 1010, 'data': 'BadProof', 'message': 'Invalid Transaction'}
+{'code': 1002,
+ 'data': 'RuntimeApi("Execution(ApiError(\\"Could not convert parameter `tx` '
+         'between node and runtime: No such variant in enum '
+         'MultiSignature\\"))")',
+ 'message': 'Verification Error: Execution(ApiError("Could not convert '
+            'parameter `tx` between node and runtime: No such variant in enum '
+            'MultiSignature"))'}
 
 """
