@@ -80,7 +80,7 @@ custom_type_registry_2 = {"please help" : "thanks."}
 def with_custom_type_registry(custom_type_registry):
 
     substrate = SubstrateInterface(url=URL,
-                                   address_type=42, 
+                                   # address_type=42, 
                                    type_registry_preset='default', 
                                    type_registry=custom_type_registry)
     return substrate

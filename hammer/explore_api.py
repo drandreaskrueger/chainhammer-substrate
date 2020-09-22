@@ -16,6 +16,7 @@ from substrateinterface.utils.ss58 import ss58_encode
 
 URL = "ws://127.0.0.1:9900/"  
 URL = "ws://127.0.0.1:9944/"
+URL = "wss://dev-node.substrate.dev"
 # URL = "http://127.0.0.1:9800" # "http://127.0.0.1:9933"
 
 ALICE_ADDRESS=     '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'
